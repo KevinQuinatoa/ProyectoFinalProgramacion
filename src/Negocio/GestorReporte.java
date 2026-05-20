@@ -1,21 +1,26 @@
-package Gestores;
+package Negocio;
 
-import Registro.Falla;
-import Registro.Mantenimiento;
+import Modelo.Falla;
+import Modelo.Mantenimiento;
 import java.util.List;
 
 public class GestorReporte {
 
-    /** RF7 — Consultar todos los reportes de fallas */
-    public void consultarFallas(GestorFallas gestorFallas) {
+    /**
+     * RF7 — Consultar todos los reportes de fallas
+     *
+     * @return
+     */
+    public List<String> consultarFallas(GestorFallas gestorFallas) {
         List<Falla> lista = gestorFallas.getLista();
         if (lista.isEmpty()) {
             System.out.println("No hay fallas registradas.");
-            return;
+            return null;
         }
         System.out.println("\n--- Reporte de fallas ---");
         for (Falla falla : lista)
             System.out.println(falla);
+        return null;
     }
 
     /** Extra — Consultar historial completo de mantenimientos */

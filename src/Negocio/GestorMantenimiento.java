@@ -1,6 +1,6 @@
-package Gestores;
+package Negocio;
 
-import Registro.Mantenimiento;
+import Modelo.Mantenimiento;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;

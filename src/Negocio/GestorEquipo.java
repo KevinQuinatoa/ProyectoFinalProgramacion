@@ -1,9 +1,9 @@
-package Gestores;
+package Negocio;
 
-import Registro.DatosEquipo;
-import Registro.EquipoComputo;
-import Registro.EquipoImpresion;
-import Registro.EquipoProyectore;
+import Modelo.DatosEquipo;
+import Modelo.EquipoComputo;
+import Modelo.EquipoImpresion;
+import Modelo.EquipoProyectore;
 
 import java.util.ArrayList;
 import java.util.List;

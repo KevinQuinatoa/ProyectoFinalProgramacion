@@ -1,4 +1,4 @@
-package Registro;
+package Modelo;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -16,8 +16,8 @@ public class EquipoProyectore extends DatosEquipo{
 
     private String subTipo;
 
-    public EquipoProyectore(String id, String nombre, String tipo,
-                            int cantidad, LocalDate fechaIngreso, String subTipo) {
+    public EquipoProyectore(String id, String nombre, String subTipo,
+                            int cantidad, LocalDate fechaIngreso) {
         super(id, nombre, "Proyector", cantidad, fechaIngreso);
         this.subTipo=subTipo;
     }

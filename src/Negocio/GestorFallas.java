@@ -1,6 +1,6 @@
-package Gestores;
+package Negocio;
 
-import Registro.Falla;
+import Modelo.Falla;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
