@@ -1,4 +1,9 @@
-package Registro;
+package Gestores;
+
+import Registro.DatosEquipo;
+import Registro.EquipoComputo;
+import Registro.EquipoImpresion;
+import Registro.EquipoProyectore;
 
 import java.util.ArrayList;
 import java.util.List;
