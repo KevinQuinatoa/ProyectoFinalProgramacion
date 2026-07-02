@@ -1,92 +1,325 @@
 package Interfaz;
 
-// interfaz/SistemaMantenimiento.java
+// interfaz/Sistema.java
 import Modelo.*;
 import Negocio.*;
 import java.time.LocalDate;
+import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
+import Exception.DatoInvalidoException;
+import Exception.FormatoInvalidoException;
+import Exception.UsuarioDuplicadoException;
 
 public class Sistema {
 
-    static GestorEquipo gestorEquipo       = new GestorEquipo();
-    static GestorMantenimiento gestorMant    = new GestorMantenimiento();
-    static GestorFallas gestorFallas         = new GestorFallas();
-    static GestorReporte gestorReporte     = new GestorReporte();
+    // Instancias globales de los controladores de negocio
+    static GestorEquipo gestorEquipo             = new GestorEquipo();
+    static GestorMantenimiento gestorMant          = new GestorMantenimiento();
+    static GestorFallas gestorFallas               = new GestorFallas();
+    static GestorReporte gestorReporte             = new GestorReporte();
+    static GestorUsuario gestorUsuario             = new GestorUsuario(); // Inicialización corregida
     static Scanner sc = new Scanner(System.in);
 
     public int menu() {
-        int opcion;
-            System.out.println("\n====================================");
-            System.out.println("  Sistema de Gestión de Mantenimiento");
-            System.out.println("====================================");
-            System.out.println("1. Gestión de equipos");
-            System.out.println("2. Gestión de mantenimiento");
-            System.out.println("3. Gestión de fallas");
-            System.out.println("4. Control y seguimiento");
+        while (true) {
+            try {
+                System.out.println("\n====================================");
+                System.out.println("  Sistema de Gestión de Mantenimiento");
+                System.out.println("====================================");
+                System.out.println("1. Gestión de usuarios");
+                System.out.println("2. Gestión de equipos");
+                System.out.println("3. Gestión de mantenimiento");
+                System.out.println("4. Gestión de fallas");
+                System.out.println("5. Control y seguimiento");
+                System.out.print("Opción: ");
+                int opcion = sc.nextInt();
+                sc.nextLine(); // Limpiar búfer
+                return opcion;
+            } catch (InputMismatchException e) {
+                System.out.println("\n[ERROR] Entrada inválida. Ingrese un número entero.");
+                sc.nextLine(); // Limpiar búfer corrupto
+            }
+        }
+    }
+
+    /**
+     * Muestra el menú de bienvenida y valida los datos campo por campo en tiempo real.
+     */
+    public Usuario identificarORegistrarUsuarioInicial() {
+        while (true) {
+            try {
+                System.out.println("\n--- ACCESO AL SISTEMA ---");
+                System.out.println("1. Ya estoy registrado (Iniciar Sesión)");
+                System.out.println("2. Registrarse como usuario nuevo");
+                System.out.print("Opción: ");
+                int opcionAcceso = sc.nextInt();
+                sc.nextLine(); // Limpiar búfer
+
+                switch (opcionAcceso) {
+                    case 1:
+                        System.out.print("\nIngrese su Cédula/ID: ");
+                        String cedulaLogin = sc.nextLine().trim();
+
+                        Usuario usuarioExistente = gestorUsuario.buscarPorCedula(cedulaLogin);
+
+                        if (usuarioExistente != null) {
+                            return usuarioExistente;
+                        } else {
+                            System.out.println("\n[AVISO] La cédula ingresada no existe en el sistema.");
+                            System.out.println("Por favor, verifique el número o elija la opción 2 para registrarse.");
+                        }
+                        break;
+
+                    case 2:
+                        System.out.println("\n--- Formulario de Registro Obligatorio ---");
+
+                        String cedulaNueva = "";
+                        String nombre = "";
+                        String telefono = "";
+                        String cargo = "";
+
+                        // 1. VALIDACIÓN INMEDIATA DE CÉDULA
+                        while (true) {
+                            try {
+                                System.out.print("Ingrese Cédula (10 dígitos): ");
+                                cedulaNueva = sc.nextLine();
+                                Usuario.validarCedula(cedulaNueva); // Valida al instante
+
+                                // Validación extra: que no esté repetida en el gestor antes de continuar
+                                if (gestorUsuario.buscarPorCedula(cedulaNueva.trim()) != null) {
+                                    throw new UsuarioDuplicadoException("Esta cédula ya está registrada en el sistema.");
+                                }
+                                break; // Si pasa las validaciones, sale del bucle de la cédula
+                            } catch (FormatoInvalidoException | UsuarioDuplicadoException e) {
+                                System.out.println("[ERROR INMEDIATO] " + e.getMessage() + " Intente de nuevo.\n");
+                            }
+                        }
+
+                        // 2. VALIDACIÓN INMEDIATA DE NOMBRE
+                        while (true) {
+                            try {
+                                System.out.print("Ingrese Nombre Completo (Solo letras): ");
+                                nombre = sc.nextLine();
+                                Usuario.validarNombre(nombre); // Valida al instante
+                                break;
+                            } catch (FormatoInvalidoException e) {
+                                System.out.println("[ERROR INMEDIATO] " + e.getMessage() + " Intente de nuevo.\n");
+                            }
+                        }
+
+                        // 3. VALIDACIÓN INMEDIATA DE TELÉFONO
+                        while (true) {
+                            try {
+                                System.out.print("Ingrese Teléfono de Contacto: ");
+                                telefono = sc.nextLine();
+                                Usuario.validarTelefono(telefono); // Valida al instante
+                                break;
+                            } catch (FormatoInvalidoException e) {
+                                System.out.println("[ERROR INMEDIATO] " + e.getMessage() + " Intente de nuevo.\n");
+                            }
+                        }
+
+                        // 4. SELECCIÓN DE CARGO
+                        while (true) {
+                            try {
+                                System.out.println("Seleccione su cargo:");
+                                System.out.println("1. Técnico\n2. Administrador\n3. Operador");
+                                System.out.print("Opción: ");
+                                int cargoOp = sc.nextInt(); sc.nextLine(); // Limpiar búfer
+
+                                cargo = switch (cargoOp) {
+                                    case 1 -> "Técnico";
+                                    case 2 -> "Administrador";
+                                    case 3 -> "Operador";
+                                    default -> "";
+                                };
+
+                                if (!cargo.isEmpty()) {
+                                    break; // Cargo válido
+                                }
+                                System.out.println("[AVISO] Opción fuera de rango. Seleccione 1, 2 o 3.\n");
+                            } catch (InputMismatchException e) {
+                                System.out.println("[ERROR] Debe ingresar un número entero.\n");
+                                sc.nextLine(); // Limpiar búfer corrupto
+                            }
+                        }
+
+                        // Cuando llega aquí, todos los datos están 100% limpios y validados
+                        Usuario nuevoUsuario = new Usuario(cedulaNueva.trim(), nombre.trim(), cargo, telefono.trim());
+                        gestorUsuario.registrarUsuario(nuevoUsuario);
+
+                        System.out.println("\n✔ ¡Registro completado con éxito!");
+                        return nuevoUsuario;
+
+                    default:
+                        System.out.println("[AVISO] Opción no válida. Seleccione 1 o 2.");
+                        break;
+                }
+
+            } catch (InputMismatchException e) {
+                System.out.println("\n[ERROR] Entrada inválida. Debe ingresar un número entero para el menú.");
+                sc.nextLine();
+            } catch (Exception e) {
+                System.out.println("\n[ERROR GENERAL] Ocurrió un inconveniente: " + e.getMessage());
+            }
+        }
+    }
+
+    // ─── MÓDULO NUEVO: GESTIÓN DE USUARIOS ───────────────────────────
+
+    public void menuUsuarios() {
+        try {
+            System.out.println("\n--- Gestión de Usuarios ---");
+            System.out.println("1. Registrar usuario / técnico");
+            System.out.println("2. Consultar usuarios");
             System.out.print("Opción: ");
-            opcion = sc.nextInt();
-        return opcion;
+            int op = sc.nextInt(); sc.nextLine();
+
+            switch (op) {
+                case 1:
+                    registrarUsuario();
+                    break;
+                case 2:
+                    consultarUsuarios();
+                    break;
+                default:
+                    System.out.println("Opción no válida.");
+                    break;
+            }
+        } catch (InputMismatchException e) {
+            System.out.println("[ERROR] Debe ingresar un número entero.");
+            sc.nextLine();
+        }
+    }
+
+    public void registrarUsuario() {
+        try {
+            System.out.println("\n--- Formulario de Registro de Usuario ---");
+            System.out.print("Ingrese Cédula (10 dígitos): ");
+            String cedula = sc.nextLine();
+
+            System.out.print("Ingrese Nombre Completo (Solo letras): ");
+            String nombre = sc.nextLine();
+
+            System.out.print("Ingrese Teléfono de Contacto: ");
+            String telefono = sc.nextLine();
+
+            System.out.println("Seleccione el cargo:");
+            System.out.println("1. Técnico\n2. Administrador\n3. Operador");
+            System.out.print("Opción: ");
+            int cargoOp = sc.nextInt(); sc.nextLine(); // Limpiar búfer
+
+            String cargo = switch (cargoOp) {
+                case 1 -> "Técnico";
+                case 2 -> "Administrador";
+                case 3 -> "Operador";
+                default -> "General";
+            };
+
+            // Intentamos construir el objeto. Aquí saltará FormatoInvalidoException si hay fallas.
+            Usuario nuevoUsuario = new Usuario(cedula, nombre, cargo, telefono);
+
+            // Intentamos guardarlo en la lista. Aquí saltará UsuarioDuplicadoException si ya existe.
+            gestorUsuario.registrarUsuario(nuevoUsuario);
+            System.out.println("\n✔ ¡Usuario registrado exitosamente en el sistema!");
+
+        } catch (FormatoInvalidoException e) {
+            System.out.println("\n[ERROR DE FORMATO] " + e.getMessage());
+            System.out.println("-> Registro cancelado. Por favor, intente de nuevo.");
+        } catch (UsuarioDuplicadoException e) {
+            System.out.println("\n[ERROR DE DUPLICADO] " + e.getMessage());
+        } catch (DatoInvalidoException e) {
+            System.out.println("\n[ERROR LÓGICO] " + e.getMessage());
+        } catch (InputMismatchException e) {
+            System.out.println("\n[ERROR DE ENTRADA] Ingresó caracteres alfabéticos en una opción numérica.");
+            sc.nextLine(); // Limpieza del búfer obligatoria
+        }
+    }
+
+    public void consultarUsuarios() {
+        List<Usuario> lista = gestorUsuario.listarUsuarios();
+        if (lista.isEmpty()) {
+            System.out.println("No hay usuarios registrados.");
+            return;
+        }
+        System.out.println("\n--- Lista de usuarios registrados ---");
+        for (Usuario u : lista) {
+            System.out.println(u);
+        }
     }
 
     // ─── MÓDULO 1: Gestión de equipos ───────────────────────────────
 
     public void menuEquipos() {
-        System.out.println("\n--- Gestión de Equipos ---");
-        System.out.println("1. Registrar equipo");
-        System.out.println("2. Consultar equipos");
-        System.out.print("Opción: ");
-        int op = sc.nextInt(); sc.nextLine();
+        try {
+            System.out.println("\n--- Gestión de Equipos ---");
+            System.out.println("1. Registrar equipo");
+            System.out.println("2. Consultar equipos");
+            System.out.print("Opción: ");
+            int op = sc.nextInt(); sc.nextLine();
 
-        switch (op) {
-            case 1 -> registrarEquipo();
-            case 2 -> consultarEquipos();
-            default -> System.out.println("Opción no válida.");
+            switch (op) {
+                case 1 -> registrarEquipo();
+                case 2 -> consultarEquipos();
+                default -> System.out.println("Opción no válida.");
+            }
+        } catch (InputMismatchException e) {
+            System.out.println("[ERROR] Ingrese un número entero.");
+            sc.nextLine();
         }
     }
 
     public void registrarEquipo() {
-        System.out.println("\nTipo de equipo:");
-        System.out.println("1. Cómputo   2. Impresión   3. Proyección");
-        System.out.print("Opción: ");
-        int tipo = sc.nextInt(); sc.nextLine();
+        try {
+            System.out.println("\nTipo de equipo:");
+            System.out.println("1. Cómputo   2. Impresión   3. Proyección");
+            System.out.print("Opción: ");
+            int tipo = sc.nextInt(); sc.nextLine();
 
-        // Mostrar subtipos según el tipo elegido
-        List<String> subtipos = switch (tipo) {
-            case 1 -> EquipoComputo.getSubTipos();
-            case 2 -> EquipoImpresion.getSubTipos();
-            case 3 -> EquipoProyectore.getSubtipos();
-            default -> null;
-        };
+            List<String> subtipos = switch (tipo) {
+                case 1 -> EquipoComputo.getSubTipos();
+                case 2 -> EquipoImpresion.getSubTipos();
+                case 3 -> EquipoProyectore.getSubtipos();
+                default -> null;
+            };
 
-        if (subtipos == null) { System.out.println("Tipo no válido."); return; }
+            if (subtipos == null) { System.out.println("Tipo no válido."); return; }
 
-        System.out.println("Subtipo:");
-        for (int i = 0; i < subtipos.size(); i++)
-            System.out.println((i + 1) + ". " + subtipos.get(i));
-        System.out.print("Opción: ");
-        int subOp = sc.nextInt() - 1; sc.nextLine();
-        String subtipo = subtipos.get(subOp);
+            System.out.println("Subtipo:");
+            for (int i = 0; i < subtipos.size(); i++)
+                System.out.println((i + 1) + ". " + subtipos.get(i));
+            System.out.print("Opción: ");
+            int subOp = sc.nextInt() - 1; sc.nextLine();
 
-        System.out.print("ID del equipo: ");
-        String id = sc.nextLine();
-        System.out.print("Nombre: ");
-        String nombre = sc.nextLine();
-        System.out.print("Cantidad: ");
-        int cantidad = sc.nextInt(); sc.nextLine();
+            if (subOp < 0 || subOp >= subtipos.size()) {
+                System.out.println("Subtipo fuera de rango.");
+                return;
+            }
+            String subtipo = subtipos.get(subOp);
 
-        DatosEquipo equipo = switch (tipo) {
-            case 1 -> new EquipoComputo(id, nombre, subtipo, cantidad, LocalDate.now());
-            case 2 -> new EquipoImpresion(id, nombre, subtipo, cantidad, LocalDate.now());
-            case 3 -> new EquipoProyectore(id, nombre, subtipo, cantidad, LocalDate.now());
-            default -> null;
-        };
+            System.out.print("ID del equipo: ");
+            String id = sc.nextLine();
+            System.out.print("Nombre: ");
+            String nombre = sc.nextLine();
+            System.out.print("Cantidad: ");
+            int cantidad = sc.nextInt(); sc.nextLine();
 
-        gestorEquipo.agregarEquipo(equipo);
-        System.out.println("\nEquipo agregado");        // RF1: mensaje éxito
+            DatosEquipo equipo = switch (tipo) {
+                case 1 -> new EquipoComputo(id, nombre, subtipo, cantidad, LocalDate.now());
+                case 2 -> new EquipoImpresion(id, nombre, subtipo, cantidad, LocalDate.now());
+                case 3 -> new EquipoProyectore(id, nombre, subtipo, cantidad, LocalDate.now());
+                default -> null;
+            };
+
+            gestorEquipo.agregarEquipo(equipo);
+            System.out.println("\n✔ Equipo agregado exitosamente.");
+        } catch (Exception e) {
+            System.out.println("\n[ERROR CONTROLADO] " + e.getMessage());
+        }
     }
 
-    public void consultarEquipos() {                      // RF2
+    public void consultarEquipos() {
         List<DatosEquipo> lista = gestorEquipo.listarTodos();
         if (lista.isEmpty()) {
             System.out.println("No hay equipos registrados.");
@@ -100,80 +333,86 @@ public class Sistema {
     // ─── MÓDULO 2: Gestión de mantenimiento ─────────────────────────
 
     public void menuMantenimiento() {
-        System.out.println("\n--- Gestión de Mantenimiento ---");
-        System.out.println("1. Registrar mantenimiento ");
-        System.out.println("2. Consultar historial");
-        System.out.print("Opción: ");
-        int op = sc.nextInt(); sc.nextLine();
+        try {
+            System.out.println("\n--- Gestión de Mantenimiento ---");
+            System.out.println("1. Registrar mantenimiento ");
+            System.out.println("2. Consultar historial");
+            System.out.print("Opción: ");
+            int op = sc.nextInt(); sc.nextLine();
 
-        switch (op) {
-            case 1 -> registrarMantenimiento();
-            case 2 -> consultarHistorial();
-            default -> System.out.println("Opción no válida.");
+            switch (op) {
+                case 1 -> registrarMantenimiento();
+                case 2 -> consultarHistorial();
+                default -> System.out.println("Opción no válida.");
+            }
+        } catch (InputMismatchException e) {
+            System.out.println("[ERROR] Opción inválida.");
+            sc.nextLine();
         }
     }
 
     public void registrarMantenimiento() {
+        try {
+            List<DatosEquipo> equipos = gestorEquipo.listarTodos();
 
-        // 1. Obtener equipos registrados
-        List<DatosEquipo> equipos = gestorEquipo.listarTodos();
+            if (equipos.isEmpty()) {
+                System.out.println("No hay equipos registrados para dar mantenimiento.");
+                return;
+            }
 
-        if (equipos.isEmpty()) {
-            System.out.println("No hay equipos registrados para dar mantenimiento.");
-            return;
+            System.out.println("\n--- Equipos registrados ---");
+            for (int i = 0; i < equipos.size(); i++) {
+                System.out.println((i + 1) + ". " + equipos.get(i).getNombre()
+                        + " | ID: "     + equipos.get(i).getId()
+                        + " | Estado: " + equipos.get(i).getEstado());
+            }
+
+            System.out.print("Seleccione el equipo (número): ");
+            int seleccion = sc.nextInt(); sc.nextLine();
+
+            if (seleccion < 1 || seleccion > equipos.size()) {
+                System.out.println("Selección no válida.");
+                return;
+            }
+
+            DatosEquipo equipoSeleccionado = equipos.get(seleccion - 1);
+            String idEquipo = equipoSeleccionado.getId();
+
+            System.out.println("\nTipo de mantenimiento:");
+            System.out.println("1. Preventivo\n2. Correctivo\n3. Diagnóstico");
+            System.out.print("Opción: ");
+            int tipoOp = sc.nextInt(); sc.nextLine();
+
+            String tipo = switch (tipoOp) {
+                case 1 -> "Preventivo";
+                case 2 -> "Correctivo";
+                case 3 -> "Diagnóstico";
+                default -> "Desconocido";
+            };
+
+            System.out.print("Descripción: ");
+            String desc = sc.nextLine();
+
+            System.out.print("Cédula del Técnico responsable: ");
+            String cedulaTec = sc.nextLine();
+
+            // Validación cruzada con el Gestor de Usuarios
+            Usuario tecnico = gestorUsuario.buscarPorCedula(cedulaTec);
+            if (tecnico == null) {
+                throw new DatoInvalidoException("El técnico con cédula '" + cedulaTec + "' no está registrado. Regístrelo primero en el módulo 1.");
+            }
+
+            gestorMant.registrar(idEquipo, tipo, desc, tecnico.getNombre(), LocalDate.now());
+            gestorEquipo.actualizarEstado(idEquipo, "en mantenimiento");
+
+            System.out.println("\n✔ Mantenimiento asignado correctamente al técnico: " + tecnico.getNombre());
+            System.out.println("  Equipo '" + equipoSeleccionado.getNombre() + "' marcado como: en mantenimiento");
+        } catch (Exception e) {
+            System.out.println("\n[ERROR EN OPERACIÓN] " + e.getMessage());
         }
-
-        // 2. Mostrar menú de equipos disponibles
-        System.out.println("\n--- Equipos registrados ---");
-        for (int i = 0; i < equipos.size(); i++) {
-            System.out.println((i + 1) + ". " + equipos.get(i).getNombre()
-                    + " | ID: "     + equipos.get(i).getId()
-                    + " | Estado: " + equipos.get(i).getEstado());
-        }
-
-        // 3. El usuario elige por número
-        System.out.print("Seleccione el equipo (número): ");
-        int seleccion = sc.nextInt(); sc.nextLine();
-
-        if (seleccion < 1 || seleccion > equipos.size()) {
-            System.out.println("Selección no válida.");
-            return;
-        }
-
-        DatosEquipo equipoSeleccionado = equipos.get(seleccion - 1);
-        String idEquipo = equipoSeleccionado.getId();
-
-        // 4. Elegir tipo de mantenimiento
-        System.out.println("\nTipo de mantenimiento:");
-        System.out.println("1. Preventivo");
-        System.out.println("2. Correctivo");
-        System.out.println("3. Diagnóstico");
-        System.out.print("Opción: ");
-        int tipoOp = sc.nextInt(); sc.nextLine();
-
-        String tipo = switch (tipoOp) {
-            case 1 -> "Preventivo";
-            case 2 -> "Correctivo";
-            case 3 -> "Diagnóstico";
-            default -> "Desconocido";
-        };
-
-        // 5. Pedir descripción y técnico
-        System.out.print("Descripción: ");
-        String desc = sc.nextLine();
-        System.out.print("Técnico responsable: ");
-        String tecnico = sc.nextLine();
-
-        // 6. Registrar y actualizar estado del equipo
-        gestorMant.registrar(idEquipo, tipo, desc, tecnico, LocalDate.now());
-        gestorEquipo.actualizarEstado(idEquipo, "en mantenimiento");
-
-        System.out.println("\n✔ Mantenimiento registrado correctamente"); // RF3
-        System.out.println("  Equipo '" + equipoSeleccionado.getNombre()
-                + "' marcado como: en mantenimiento");
     }
 
-    public void consultarHistorial() { // RF4
+    public void consultarHistorial() {
         List<DatosEquipo> equipos = gestorEquipo.listarTodos();
 
         if (equipos.isEmpty()) {
@@ -199,7 +438,6 @@ public class Sistema {
         DatosEquipo equipoSeleccionado = equipos.get(seleccion - 1);
         String idEquipo = equipoSeleccionado.getId();
 
-        // ── ESTO ES LO QUE FALTABA ──────────────────────────
         List<Mantenimiento> historial = gestorMant.consultarPorEquipo(idEquipo);
 
         if (historial.isEmpty()) {
@@ -210,29 +448,32 @@ public class Sistema {
 
         System.out.println("\n--- Historial de '" + equipoSeleccionado.getNombre() + "' ---");
         for (Mantenimiento m : historial) {
-            System.out.println(m); // usa el toString() de Mantenimiento
+            System.out.println(m);
         }
     }
 
-    // ─── MÓDULO 3: Gestión de fallas ────────────────────────────────
+    // ─── MÓDULO 4: Gestión de fallas ────────────────────────────────
 
     public void menuFallas() {
-        System.out.println("\n--- Gestión de Fallas ---");
-        System.out.println("1. Reportar falla");
-        System.out.println("2. Actualizar estado del equipo");
-        System.out.print("Opción: ");
-        int op = sc.nextInt(); sc.nextLine();
+        try {
+            System.out.println("\n--- Gestión de Fallas ---");
+            System.out.println("1. Reportar falla");
+            System.out.println("2. Actualizar estado del equipo");
+            System.out.print("Opción: ");
+            int op = sc.nextInt(); sc.nextLine();
 
-        switch (op) {
-            case 1 -> reportarFalla();
-            case 2 -> actualizarEstado();
-            default -> System.out.println("Opción no válida.");
+            switch (op) {
+                case 1 -> reportarFalla();
+                case 2 -> actualizarEstado();
+                default -> System.out.println("Opción no válida.");
+            }
+        } catch (InputMismatchException e) {
+            System.out.println("[ERROR] Ingrese un número entero.");
+            sc.nextLine();
         }
     }
 
     public void reportarFalla() {
-
-        // 1. Obtener equipos registrados
         List<DatosEquipo> equipos = gestorEquipo.listarTodos();
 
         if (equipos.isEmpty()) {
@@ -240,7 +481,6 @@ public class Sistema {
             return;
         }
 
-        // 2. Mostrar menú de equipos disponibles
         System.out.println("\n--- Equipos registrados ---");
         for (int i = 0; i < equipos.size(); i++) {
             System.out.println((i + 1) + ". " + equipos.get(i).getNombre()
@@ -248,7 +488,6 @@ public class Sistema {
                     + " | Estado: " + equipos.get(i).getEstado());
         }
 
-        // 3. El usuario elige por número, no escribe el ID
         System.out.print("Seleccione el equipo (número): ");
         int seleccion = sc.nextInt(); sc.nextLine();
 
@@ -260,24 +499,23 @@ public class Sistema {
         DatosEquipo equipoSeleccionado = equipos.get(seleccion - 1);
         String idEquipo = equipoSeleccionado.getId();
 
-        // 4. Pedir datos de la falla
         System.out.print("Descripción de la falla: ");
         String desc = sc.nextLine();
         System.out.print("Tu nombre (usuario que reporta): ");
         String usuario = sc.nextLine();
 
-        // 5. Registrar y cambiar estado del equipo a "en mantenimiento"
-        gestorFallas.reportar(idEquipo, desc, usuario, LocalDate.now());
-        gestorEquipo.actualizarEstado(idEquipo, "en mantenimiento");
+        try {
+            gestorFallas.reportar(idEquipo, desc, usuario, LocalDate.now());
+            gestorEquipo.actualizarEstado(idEquipo, "en mantenimiento");
 
-        System.out.println("\n✔ Falla registrada correctamente"); // RF5
-        System.out.println("  Equipo '" + equipoSeleccionado.getNombre()
-                + "' marcado como: en mantenimiento");
+            System.out.println("\n✔ Falla registrada correctamente");
+            System.out.println("  Equipo '" + equipoSeleccionado.getNombre() + "' marcado como: en mantenimiento");
+        } catch (Exception e) {
+            System.out.println("[ERROR] " + e.getMessage());
+        }
     }
 
     public void actualizarEstado() {
-
-        // 1. Mostrar equipos registrados para elegir
         List<DatosEquipo> equipos = gestorEquipo.listarTodos();
 
         if (equipos.isEmpty()) {
@@ -302,11 +540,8 @@ public class Sistema {
 
         String idEquipo = equipos.get(seleccion - 1).getId();
 
-        // 2. Elegir nuevo estado
         System.out.println("\nNuevo estado:");
-        System.out.println("1. Operativo");
-        System.out.println("2. En mantenimiento");
-        System.out.println("3. Fuera de servicio");
+        System.out.println("1. Operativo\n2. En mantenimiento\n3. Fuera de servicio");
         System.out.print("Opción: ");
         int op = sc.nextInt(); sc.nextLine();
 
@@ -317,14 +552,17 @@ public class Sistema {
             default -> "desconocido";
         };
 
-        // 3. Actualizar en AMBOS gestores
-        gestorEquipo.actualizarEstado(idEquipo, estado); // estado del equipo
-        gestorFallas.actualizarEstado(idEquipo, estado);  // estado de sus fallas
+        try {
+            gestorEquipo.actualizarEstado(idEquipo, estado);
+            gestorFallas.actualizarEstado(idEquipo, estado);
 
-        System.out.println("\n✔ Estado actualizado correctamente"); // RF6
+            System.out.println("\n✔ Estado actualizado correctamente.");
+        } catch (Exception e) {
+            System.out.println("[ERROR] " + e.getMessage());
+        }
     }
 
-    // ─── MÓDULO 4: Control y seguimiento ────────────────────────────
+    // ─── MÓDULO 5: Control y seguimiento ────────────────────────────
 
     public void menuReportes() {
         System.out.println("\n--- Control y Seguimiento ---");
@@ -334,13 +572,9 @@ public class Sistema {
         int op = sc.nextInt(); sc.nextLine();
 
         switch (op) {
-            case 1 ->
-                // ya no guardamos en List, llamamos directo
-                    gestorReporte.consultarFallas(gestorFallas);
-            case 2 ->
-                    gestorReporte.consultarMantenimientos(gestorMant);
-            default ->
-                    System.out.println("Opción no válida.");
+            case 1 -> gestorReporte.consultarFallas(gestorFallas);
+            case 2 -> gestorReporte.consultarMantenimientos(gestorMant);
+            default -> System.out.println("Opción no válida.");
         }
     }
 }
