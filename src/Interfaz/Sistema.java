@@ -424,10 +424,10 @@ public class Sistema {
         for (int i = 0; i < equipos.size(); i++) {
             System.out.println((i + 1) + ". " + equipos.get(i).getNombre()
                     + " | ID: "     + equipos.get(i).getId()
-                    + " | Estado: " + equipos.get(i).getEstado());
+                    + " | Estado actual en sistema: " + equipos.get(i).getEstado());
         }
 
-        System.out.print("Seleccione el equipo (número): ");
+        System.out.print("Seleccione el equipo (número) para ver su historial: ");
         int seleccion = sc.nextInt(); sc.nextLine();
 
         if (seleccion < 1 || seleccion > equipos.size()) {
@@ -438,6 +438,7 @@ public class Sistema {
         DatosEquipo equipoSeleccionado = equipos.get(seleccion - 1);
         String idEquipo = equipoSeleccionado.getId();
 
+        // Obtenemos los registros de mantenimiento de este equipo
         List<Mantenimiento> historial = gestorMant.consultarPorEquipo(idEquipo);
 
         if (historial.isEmpty()) {
@@ -446,10 +447,16 @@ public class Sistema {
             return;
         }
 
-        System.out.println("\n--- Historial de '" + equipoSeleccionado.getNombre() + "' ---");
+        System.out.println("\n=======================================================");
+        System.out.println("   HISTORIAL DE MANTENIMIENTO: " + equipoSeleccionado.getNombre().toUpperCase());
+        System.out.println("   ESTADO ACTUAL DEL EQUIPO: " + equipoSeleccionado.getEstado().toUpperCase()); // <-- AQUÍ MUESTRA EL ESTADO REAL EN VIVO
+        System.out.println("=======================================================");
+
         for (Mantenimiento m : historial) {
+            // Imprimimos los detalles guardados (fecha, técnico, descripción)
             System.out.println(m);
         }
+        System.out.println("=======================================================");
     }
 
     // ─── MÓDULO 4: Gestión de fallas ────────────────────────────────
