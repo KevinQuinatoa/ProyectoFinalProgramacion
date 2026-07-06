@@ -241,9 +241,16 @@ public class Sistema {
             try {
                 System.out.print("Ingrese Teléfono de Contacto: ");
                 telefono = sc.nextLine().trim();
+
+                // Valida formato (solo números)
                 Usuario.validarTelefono(telefono);
+
+                // VALIDACIÓN DE TELÉFONO DUPLICADO
+                if (gestorUsuario.buscarPorTelefono(telefono) != null) {
+                    throw new UsuarioDuplicadoException("Este número de teléfono ya está asignado a otro usuario.");
+                }
                 break;
-            } catch (FormatoInvalidoException e) {
+            } catch (FormatoInvalidoException | UsuarioDuplicadoException e) {
                 System.out.println("[ERROR INMEDIATO] " + e.getMessage() + " Intente de nuevo.\n");
             }
         }
