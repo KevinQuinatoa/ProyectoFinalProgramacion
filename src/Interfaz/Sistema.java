@@ -53,25 +53,31 @@ public class Sistema {
                 System.out.println("1. Ya estoy registrado (Iniciar Sesión)");
                 System.out.println("2. Registrarse como usuario nuevo");
                 System.out.print("Opción: ");
-                int opcionAcceso = sc.nextInt();
-                sc.nextLine(); // Limpiar búfer
+
+                // Leemos la opción como String para NO dejar 'Enters' flotando en el búfer
+                String opcionAcceso = sc.nextLine().trim();
 
                 switch (opcionAcceso) {
-                    case 1:
+                    case "1":
+                        // --- OPCIÓN 1: INICIAR SESIÓN ---
                         System.out.print("\nIngrese su Cédula/ID: ");
-                        String cedulaLogin = sc.nextLine().trim();
+                        String cedulaLogin = sc.nextLine().trim(); // Limpieza estricta de espacios
+
+                        // Forzamos validación de formato antes de buscar
+                        Usuario.validarCedula(cedulaLogin);
 
                         Usuario usuarioExistente = gestorUsuario.buscarPorCedula(cedulaLogin);
 
                         if (usuarioExistente != null) {
-                            return usuarioExistente;
+                            return usuarioExistente; // Inicia sesión con éxito
                         } else {
-                            System.out.println("\n[AVISO] La cédula ingresada no existe en el sistema.");
+                            System.out.println("\n[AVISO] La cédula '" + cedulaLogin + "' no existe en el sistema.");
                             System.out.println("Por favor, verifique el número o elija la opción 2 para registrarse.");
                         }
                         break;
 
-                    case 2:
+                    case "2":
+                        // --- OPCIÓN 2: REGISTRARSE ---
                         System.out.println("\n--- Formulario de Registro Obligatorio ---");
 
                         String cedulaNueva = "";
@@ -79,18 +85,21 @@ public class Sistema {
                         String telefono = "";
                         String cargo = "";
 
-                        // 1. VALIDACIÓN INMEDIATA DE CÉDULA
+                        // 1. VALIDACIÓN INMEDIATA DE CÉDULA Y DUPLICADOS
                         while (true) {
                             try {
                                 System.out.print("Ingrese Cédula (10 dígitos): ");
-                                cedulaNueva = sc.nextLine();
-                                Usuario.validarCedula(cedulaNueva); // Valida al instante
+                                cedulaNueva = sc.nextLine().trim(); // Limpieza estricta de espacios
 
-                                // Validación extra: que no esté repetida en el gestor antes de continuar
-                                if (gestorUsuario.buscarPorCedula(cedulaNueva.trim()) != null) {
-                                    throw new UsuarioDuplicadoException("Esta cédula ya está registrada en el sistema.");
+                                // Valida que sean 10 dígitos y solo números
+                                Usuario.validarCedula(cedulaNueva);
+
+                                // Verificación en caliente contra el gestor
+                                if (gestorUsuario.buscarPorCedula(cedulaNueva) != null) {
+                                    throw new UsuarioDuplicadoException("Esta cédula ya está registrada con otro usuario.");
                                 }
-                                break; // Si pasa las validaciones, sale del bucle de la cédula
+
+                                break; // Cédula limpia y única, salimos del ciclo
                             } catch (FormatoInvalidoException | UsuarioDuplicadoException e) {
                                 System.out.println("[ERROR INMEDIATO] " + e.getMessage() + " Intente de nuevo.\n");
                             }
@@ -100,8 +109,8 @@ public class Sistema {
                         while (true) {
                             try {
                                 System.out.print("Ingrese Nombre Completo (Solo letras): ");
-                                nombre = sc.nextLine();
-                                Usuario.validarNombre(nombre); // Valida al instante
+                                nombre = sc.nextLine().trim();
+                                Usuario.validarNombre(nombre);
                                 break;
                             } catch (FormatoInvalidoException e) {
                                 System.out.println("[ERROR INMEDIATO] " + e.getMessage() + " Intente de nuevo.\n");
@@ -112,8 +121,8 @@ public class Sistema {
                         while (true) {
                             try {
                                 System.out.print("Ingrese Teléfono de Contacto: ");
-                                telefono = sc.nextLine();
-                                Usuario.validarTelefono(telefono); // Valida al instante
+                                telefono = sc.nextLine().trim();
+                                Usuario.validarTelefono(telefono);
                                 break;
                             } catch (FormatoInvalidoException e) {
                                 System.out.println("[ERROR INMEDIATO] " + e.getMessage() + " Intente de nuevo.\n");
@@ -122,44 +131,38 @@ public class Sistema {
 
                         // 4. SELECCIÓN DE CARGO
                         while (true) {
-                            try {
-                                System.out.println("Seleccione su cargo:");
-                                System.out.println("1. Técnico\n2. Administrador\n3. Operador");
-                                System.out.print("Opción: ");
-                                int cargoOp = sc.nextInt(); sc.nextLine(); // Limpiar búfer
+                            System.out.println("Seleccione su cargo:");
+                            System.out.println("1. Técnico\n2. Administrador\n3. Operador");
+                            System.out.print("Opción: ");
+                            String cargoOp = sc.nextLine().trim(); // Leemos como String para evitar InputMismatchException
 
-                                cargo = switch (cargoOp) {
-                                    case 1 -> "Técnico";
-                                    case 2 -> "Administrador";
-                                    case 3 -> "Operador";
-                                    default -> "";
-                                };
+                            cargo = switch (cargoOp) {
+                                case "1" -> "Técnico";
+                                case "2" -> "Administrador";
+                                case "3" -> "Operador";
+                                default -> "";
+                            };
 
-                                if (!cargo.isEmpty()) {
-                                    break; // Cargo válido
-                                }
-                                System.out.println("[AVISO] Opción fuera de rango. Seleccione 1, 2 o 3.\n");
-                            } catch (InputMismatchException e) {
-                                System.out.println("[ERROR] Debe ingresar un número entero.\n");
-                                sc.nextLine(); // Limpiar búfer corrupto
+                            if (!cargo.isEmpty()) {
+                                break;
                             }
+                            System.out.println("[AVISO] Opción fuera de rango. Seleccione 1, 2 o 3.\n");
                         }
 
-                        // Cuando llega aquí, todos los datos están 100% limpios y validados
-                        Usuario nuevoUsuario = new Usuario(cedulaNueva.trim(), nombre.trim(), cargo, telefono.trim());
+                        // Al llegar aquí, los datos están completamente limpios y estandarizados
+                        Usuario nuevoUsuario = new Usuario(cedulaNueva, nombre, cargo, telefono);
                         gestorUsuario.registrarUsuario(nuevoUsuario);
 
                         System.out.println("\n✔ ¡Registro completado con éxito!");
                         return nuevoUsuario;
 
                     default:
-                        System.out.println("[AVISO] Opción no válida. Seleccione 1 o 2.");
+                        System.out.println("[AVISO] Opción no válida. Ingrese el número 1 o 2.");
                         break;
                 }
 
-            } catch (InputMismatchException e) {
-                System.out.println("\n[ERROR] Entrada inválida. Debe ingresar un número entero para el menú.");
-                sc.nextLine();
+            } catch (FormatoInvalidoException e) {
+                System.out.println("\n[ERROR DE FORMATO] " + e.getMessage());
             } catch (Exception e) {
                 System.out.println("\n[ERROR GENERAL] Ocurrió un inconveniente: " + e.getMessage());
             }
@@ -194,46 +197,92 @@ public class Sistema {
     }
 
     public void registrarUsuario() {
-        try {
-            System.out.println("\n--- Formulario de Registro de Usuario ---");
-            System.out.print("Ingrese Cédula (10 dígitos): ");
-            String cedula = sc.nextLine();
+        System.out.println("\n--- Formulario de Registro de Usuario ---");
 
-            System.out.print("Ingrese Nombre Completo (Solo letras): ");
-            String nombre = sc.nextLine();
+        String cedula = "";
+        String nombre = "";
+        String telefono = "";
+        String cargo = "";
 
-            System.out.print("Ingrese Teléfono de Contacto: ");
-            String telefono = sc.nextLine();
+        // 1. VALIDACIÓN INMEDIATA DE CÉDULA Y DUPLICADOS (Sin dejar Enters flotando)
+        while (true) {
+            try {
+                System.out.print("Ingrese Cédula (10 dígitos): ");
+                cedula = sc.nextLine().trim();
 
+                // Valida formato (10 dígitos, solo números)
+                Usuario.validarCedula(cedula);
+
+                // Validación en caliente de duplicados contra el gestor
+                if (gestorUsuario.buscarPorCedula(cedula) != null) {
+                    throw new UsuarioDuplicadoException("Esta cédula ya está registrada con otro usuario.");
+                }
+
+                break; // Si es válida y única, sale del bucle de la cédula
+            } catch (FormatoInvalidoException | UsuarioDuplicadoException e) {
+                System.out.println("[ERROR INMEDIATO] " + e.getMessage() + " Intente de nuevo.\n");
+            }
+        }
+
+        // 2. VALIDACIÓN INMEDIATA DE NOMBRE
+        while (true) {
+            try {
+                System.out.print("Ingrese Nombre Completo (Solo letras): ");
+                nombre = sc.nextLine().trim();
+                Usuario.validarNombre(nombre);
+                break;
+            } catch (FormatoInvalidoException e) {
+                System.out.println("[ERROR INMEDIATO] " + e.getMessage() + " Intente de nuevo.\n");
+            }
+        }
+
+        // 3. VALIDACIÓN INMEDIATA DE TELÉFONO
+        while (true) {
+            try {
+                System.out.print("Ingrese Teléfono de Contacto: ");
+                telefono = sc.nextLine().trim();
+                Usuario.validarTelefono(telefono);
+                break;
+            } catch (FormatoInvalidoException e) {
+                System.out.println("[ERROR INMEDIATO] " + e.getMessage() + " Intente de nuevo.\n");
+            }
+        }
+
+        // 4. SELECCIÓN DE CARGO (Leído como String clásico con switch tradicional)
+        while (true) {
             System.out.println("Seleccione el cargo:");
             System.out.println("1. Técnico\n2. Administrador\n3. Operador");
             System.out.print("Opción: ");
-            int cargoOp = sc.nextInt(); sc.nextLine(); // Limpiar búfer
+            String cargoOp = sc.nextLine().trim();
 
-            String cargo = switch (cargoOp) {
-                case 1 -> "Técnico";
-                case 2 -> "Administrador";
-                case 3 -> "Operador";
-                default -> "General";
-            };
+            switch (cargoOp) {
+                case "1":
+                    cargo = "Técnico";
+                    break;
+                case "2":
+                    cargo = "Administrador";
+                    break;
+                case "3":
+                    cargo = "Operador";
+                    break;
+                default:
+                    cargo = "";
+                    break;
+            }
 
-            // Intentamos construir el objeto. Aquí saltará FormatoInvalidoException si hay fallas.
+            if (!cargo.isEmpty()) {
+                break; // Salimos si eligió una opción válida (1, 2 o 3)
+            }
+            System.out.println("[AVISO] Opción fuera de rango. Seleccione 1, 2 o 3.\n");
+        }
+
+        try {
+            // Construcción e inserción 100% seguras
             Usuario nuevoUsuario = new Usuario(cedula, nombre, cargo, telefono);
-
-            // Intentamos guardarlo en la lista. Aquí saltará UsuarioDuplicadoException si ya existe.
             gestorUsuario.registrarUsuario(nuevoUsuario);
             System.out.println("\n✔ ¡Usuario registrado exitosamente en el sistema!");
-
-        } catch (FormatoInvalidoException e) {
-            System.out.println("\n[ERROR DE FORMATO] " + e.getMessage());
-            System.out.println("-> Registro cancelado. Por favor, intente de nuevo.");
-        } catch (UsuarioDuplicadoException e) {
-            System.out.println("\n[ERROR DE DUPLICADO] " + e.getMessage());
-        } catch (DatoInvalidoException e) {
-            System.out.println("\n[ERROR LÓGICO] " + e.getMessage());
-        } catch (InputMismatchException e) {
-            System.out.println("\n[ERROR DE ENTRADA] Ingresó caracteres alfabéticos en una opción numérica.");
-            sc.nextLine(); // Limpieza del búfer obligatoria
+        } catch (Exception e) {
+            System.out.println("\n[ERROR GENERAL] No se pudo guardar el usuario: " + e.getMessage());
         }
     }
 
@@ -245,7 +294,7 @@ public class Sistema {
         }
         System.out.println("\n--- Lista de usuarios registrados ---");
         for (Usuario u : lista) {
-            System.out.println(u);
+            System.out.println(u); // Ejecuta el toString() limpio de Usuario
         }
     }
 
@@ -299,11 +348,17 @@ public class Sistema {
             String subtipo = subtipos.get(subOp);
 
             System.out.print("ID del equipo: ");
-            String id = sc.nextLine();
+            String id = sc.nextLine().trim();
             System.out.print("Nombre: ");
-            String nombre = sc.nextLine();
+            String nombre = sc.nextLine().trim();
+
             System.out.print("Cantidad: ");
             int cantidad = sc.nextInt(); sc.nextLine();
+
+            // ─── VALIDACIÓN INMEDIATA DE CANTIDAD ───
+            if (cantidad <= 0) {
+                throw new DatoInvalidoException("La cantidad ingresada debe ser mayor a 0. No se permiten equipos vacíos o negativos.");
+            }
 
             DatosEquipo equipo = switch (tipo) {
                 case 1 -> new EquipoComputo(id, nombre, subtipo, cantidad, LocalDate.now());
@@ -314,6 +369,12 @@ public class Sistema {
 
             gestorEquipo.agregarEquipo(equipo);
             System.out.println("\n✔ Equipo agregado exitosamente.");
+
+        } catch (DatoInvalidoException e) {
+            System.out.println("\n[ERROR DE LÓGICA] " + e.getMessage());
+        } catch (InputMismatchException e) {
+            System.out.println("\n[ERROR DE ENTRADA] Se esperaba un dato numérico entero.");
+            sc.nextLine(); // Limpiar búfer
         } catch (Exception e) {
             System.out.println("\n[ERROR CONTROLADO] " + e.getMessage());
         }
